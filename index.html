@@ -1,231 +1,272 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-8"/>
     <title>Tilt Menu with Instructions</title>
-
+    
     <style>
-      body {
-        font-family: Arial;
-        text-align: center;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
+      body{
+        font-family:Arial;
+        text-align:center;
+        overflow:hidden;
+        margin:0;
+        padding:0;
       }
-
-      #startScreen,
-      #menuScreen {
-        width: 100%;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+      
+      #startScreen,#menuScreen{
+        width:100%;
+        height:100vh;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
       }
-
-      #viewport {
-        width: 90%;
-        height: 180px;
-        overflow: hidden;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        margin: 20px auto;
+      
+      #viewport{
+        width:90%;
+        height:180px;
+        overflow:hidden;
+        border:2px solid #ddd;
+        border-radius:8px;
+        margin:20px auto;
       }
-
-      #menu {
-        display: flex;
-        transition: transform 0.3s ease;
+      
+      #menu{
+        display:flex;
+        transition:transform 0.3s ease;
       }
-
-      .menuitem {
-        min-width: 120px;
-        padding: 20px;
-        margin: 10px;
-        background: #ffffff;
-        color: #0062ff;
-        border-radius: 6px;
-        border: 2px solid #0062ff;
-        font-size: 18px;
-        text-align: center;
-        transition: all 0.2s ease;
+      
+      .menuitem{
+        min-width:120px;
+        padding:20px;
+        margin:10px;
+        background:#ffffff;
+        color:#0062ff;
+        border-radius:6px;
+        border:2px solid #0062ff;
+        font-size:18px;
+        text-align:center;
+        transition:all 0.2s ease;
       }
-
-      .active {
-        background: #0062ff;
-        color: #ffffff;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        transform: scale(1.1);
+      
+      .active{
+        background:#0062ff;
+        color:#ffffff;
+        box-shadow:0 4px 15px rgba(0,0,0,0.4);
+        transform:scale(1.1);
       }
-
-      .selected {
-        background: #f75050;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-        transform: scale(1.1);
+      
+      .selected{
+        background:#f75050;
+        color:white;
+        box-shadow:0 4px 20px rgba(0,0,0,0.6);
+        transform:scale(1.1);
       }
-
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        margin: 10px;
+      
+      button{
+        padding:10px 20px;
+        font-size:16px;
+        margin:10px;
       }
-
-      #result {
-        margin-top: 20px;
-        font-size: 22px;
+      
+      #result{
+        margin-top:20px;
+        font-size:22px;
       }
     </style>
-
+    
     <script>
-      let selectedIndex = 0;
-      let lastMoveTime = 0;
-      let moveCooldown = 500;
-
-      let moveThreshold = 20;
-      let selectThreshold = -25;
-
-      let neutral = true;
-      let motionEnabled = false;
-      let menuVisible = false;
-
-      function updateMenu() {
-        let menu = document.getElementById("menu");
-        let items = document.getElementsByClassName("menuitem");
-        for (let i = 0; i < items.length; i++) {
-          items[i].classList.remove("active", "selected");
+      
+      let selectedIndex=0
+      let lastMoveTime=0
+      let moveCooldown=500
+      
+      let moveThreshold=20
+      let selectThreshold=-25
+      let unselectThreshold=15
+      
+      let neutral=true
+      let motionEnabled=false
+      
+      function updateMenu(){
+        
+        let menu=document.getElementById("menu")
+        let items=document.getElementsByClassName("menuitem")
+        
+        for(let i=0;i<items.length;i++){
+          items[i].classList.remove("active")
         }
-        items[selectedIndex].classList.add("active");
-        let offset = selectedIndex * 140;
-        menu.style.transform = "translateX(" + -offset + "px)";
+        
+        items[selectedIndex].classList.add("active")
+        
+        let offset=selectedIndex*140
+        menu.style.transform="translateX("+(-offset)+"px)"
+      
       }
-
-      function callbackOrientation(event) {
-        if (!motionEnabled) return;
-
-        let beta = event.beta;
-        let gamma = event.gamma;
-
-        document.getElementById("gyro_b").textContent = Math.floor(beta);
-        document.getElementById("gyro_g").textContent = Math.floor(gamma);
-
-        let now = Date.now();
-        let items = document.getElementsByClassName("menuitem");
-
-        // Neutral zone for left/right tilt
-        if (Math.abs(gamma) < 10) neutral = true;
-
-        if (neutral && now - lastMoveTime > moveCooldown) {
-          if (gamma > moveThreshold) {
-            selectedIndex++;
-            neutral = false;
-            lastMoveTime = now;
+      
+      function callbackOrientation(event){
+        
+        if(!motionEnabled)return
+        
+        let rawBeta=event.beta
+        let beta=rawBeta-45   // NEW CALIBRATION
+        let gamma=event.gamma
+        
+        document.getElementById("gyro_b_raw").textContent=Math.floor(rawBeta)
+        document.getElementById("gyro_b").textContent=Math.floor(beta)
+        document.getElementById("gyro_g").textContent=Math.floor(gamma)
+        
+        let now=Date.now()
+        let items=document.getElementsByClassName("menuitem")
+        
+        if(Math.abs(gamma)<10) neutral=true
+        
+        if(neutral && now-lastMoveTime>moveCooldown){
+          
+          if(gamma>moveThreshold){
+            selectedIndex++
+            neutral=false
+            lastMoveTime=now
           }
-          if (gamma < -moveThreshold) {
-            selectedIndex--;
-            neutral = false;
-            lastMoveTime = now;
+        
+          if(gamma<-moveThreshold){
+            selectedIndex--
+            neutral=false
+            lastMoveTime=now
           }
-
-          if (selectedIndex < 0) selectedIndex = 0;
-          if (selectedIndex >= items.length) selectedIndex = items.length - 1;
-
-          updateMenu();
+          
+          if(selectedIndex<0)selectedIndex=0
+          if(selectedIndex>=items.length)selectedIndex=items.length-1
+          
+          updateMenu()
+          
         }
-
-        // Tilt up to select
-        if (beta < selectThreshold) {
-          items[selectedIndex].classList.add("selected");
-          document.getElementById("result").textContent =
-            "Selected: " + items[selectedIndex].textContent;
+        
+        if(beta<selectThreshold){
+        
+          items[selectedIndex].classList.add("selected")
+          
+          document.getElementById("result").textContent=
+          "Selected: "+items[selectedIndex].textContent
+        
         }
-
-        if (beta > -selectThreshold) {
-          if (items[selectedIndex].classList.contains("selected")) {
-            items[selectedIndex].classList.remove("selected");
-            document.getElementById("result").textContent = "No selection";
-          }
+        
+        if(beta>unselectThreshold){
+        
+          items[selectedIndex].classList.remove("selected")
+          
+          document.getElementById("result").textContent="No selection"
+        
         }
+      
       }
-
-      // Enable motion sensing
-      function enableMotion() {
-        if (typeof DeviceMotionEvent.requestPermission === "function") {
+      
+      function enableMotion(){
+        
+        if(typeof DeviceMotionEvent.requestPermission==="function"){
+        
           DeviceMotionEvent.requestPermission()
-            .then((response) => {
-              if (response === "granted") {
-                window.addEventListener(
-                  "deviceorientation",
-                  callbackOrientation
-                );
-                motionEnabled = true;
-                document.getElementById("motionButton").textContent =
-                  "Disable Motion";
-              }
-            })
-            .catch(console.error);
-        } else {
-          window.addEventListener("deviceorientation", callbackOrientation);
-          motionEnabled = true;
-          document.getElementById("motionButton").textContent =
-            "Disable Motion";
+          .then(response=>{
+          
+            if(response==="granted"){
+            
+              window.addEventListener("deviceorientation",callbackOrientation)
+              
+              motionEnabled=true
+              document.getElementById("motionButton").textContent="Disable Motion"
+            
+            }
+          
+          })
+          .catch(console.error)
+      
+        }else{
+        
+          window.addEventListener("deviceorientation",callbackOrientation)
+          
+          motionEnabled=true
+          document.getElementById("motionButton").textContent="Disable Motion"
+        
         }
+      
       }
-
-      // Toggle motion sensing
-      function toggleMotion() {
-        if (motionEnabled) {
-          motionEnabled = false;
-          document.getElementById("motionButton").textContent = "Enable Motion";
-        } else {
-          enableMotion();
+      
+      function toggleMotion(){
+        
+        if(motionEnabled){
+        
+          motionEnabled=false
+          document.getElementById("motionButton").textContent="Enable Motion"
+          
+        }else{
+        
+          enableMotion()
+        
         }
+      
       }
-
-      // Start menu after instructions
-      function startMenu() {
-        document.getElementById("startScreen").style.display = "none";
-        document.getElementById("menuScreen").style.display = "flex";
-        menuVisible = true;
-        updateMenu();
+      
+      function startMenu(){
+        
+        document.getElementById("startScreen").style.display="none"
+        document.getElementById("menuScreen").style.display="flex"
+        
+        updateMenu()
+        
       }
-
-      window.onload = function () {
-        document.getElementById("menuScreen").style.display = "none";
-      };
+      
+      window.onload=function(){
+      
+        document.getElementById("menuScreen").style.display="none"
+      
+      }
+      
     </script>
   </head>
-
+  
   <body>
-    <!-- Start Screen with instructions -->
+    
     <div id="startScreen">
+    
       <h1>Welcome to Tilt Menu</h1>
+      
       <p>Instructions:</p>
+      
       <ul>
-        <li>Tilt <b>←Left/Right→</b> to scroll through buttons</li>
-        <li>Tilt <b>↑Up</b> to select the highlighted button</li>
+      <li>Tilt <b>← Left / Right →</b> to scroll</li>
+      <li>Tilt <b>↑ Up</b> to select</li>
+      <li>Tilt <b>↓ Down</b> to unselect</li>
       </ul>
+      
       <button onclick="startMenu()">Start</button>
+    
     </div>
-
-    <!-- Menu Screen -->
+    
     <div id="menuScreen">
-      <p>Beta: <span id="gyro_b">0</span></p>
+      
+      <p>Raw Beta: <span id="gyro_b_raw">0</span></p>
+      <p>Calibrated Beta: <span id="gyro_b">0</span></p>
       <p>Gamma: <span id="gyro_g">0</span></p>
-
+      
       <div id="viewport">
+        
         <div id="menu">
+        
           <div class="menuitem">Button 1</div>
           <div class="menuitem">Button 2</div>
           <div class="menuitem">Button 3</div>
           <div class="menuitem">Button 4</div>
           <div class="menuitem">Button 5</div>
           <div class="menuitem">Button 6</div>
+          
         </div>
       </div>
-
+      
       <h2 id="result">No selection</h2>
+      
       <button id="motionButton" onclick="toggleMotion()">Enable Motion</button>
+    
     </div>
+    
   </body>
 </html>
-<!-- test -->
