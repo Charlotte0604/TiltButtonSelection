@@ -2,388 +2,312 @@
 <html lang="en">
   
   <head>
-  
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    
     <title>Tilt Menu</title>
     
     <style>
-      
       body{
-      font-family:Arial;
-      text-align:center;
-      margin:0;
-      overflow:hidden;
-      background:#f5f5f5;
+        font-family:Arial;
+        text-align:center;
+        margin:0;
+        overflow:hidden;
+        background:#f5f5f5;
       }
       
       #startScreen,#menuScreen{
-      width:100%;
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
+        width:100%;
+        height:100vh;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
       }
       
       #viewport{
-      width:100%;
-      max-width:420px;
-      height:160px;
-      overflow:hidden;
-      border:2px solid #ddd;
-      border-radius:12px;
-      margin:20px auto;
-      background:white;
+        width:100%;
+        max-width:420px;
+        height:160px;
+        overflow:hidden;
+        border:2px solid #ddd;
+        border-radius:12px;
+        margin:20px auto;
+        background:white;
       }
       
       #menu{
-      display:flex;
-      transition:transform 0.3s ease;
+        display:flex;
+        transition:transform 0.3s ease;
       }
       
       .menuitem{
-      min-width:100px;
-      padding:18px;
-      margin:10px;
-      background:white;
-      color:#0062ff;
-      border-radius:10px;
-      border:2px solid #0062ff;
-      font-size:16px;
-      text-align:center;
-      transition:all 0.25s ease;
+        min-width:100px;
+        padding:18px;
+        margin:10px;
+        background:white;
+        color:#0062ff;
+        border-radius:10px;
+        border:2px solid #0062ff;
+        font-size:16px;
+        text-align:center;
+        transition:all 0.25s ease;
       }
       
       .active{
-      background:#0062ff;
-      color:white;
-      box-shadow:0 4px 15px rgba(0,0,0,0.35);
-      transform:scale(1.15);
+        background:#0062ff;
+        color:white;
+        box-shadow:0 4px 15px rgba(0,0,0,0.35);
+        transform:scale(1.15);
       }
       
       .selected{
-      background: #82c43c4b;
-      color: #6aaa25;
-      border-radius: 6px;
-      border: 2px solid #82c43c;
-      font-weight: bold;
-      box-shadow:0 4px 20px rgba(0,0,0,0.45);
+        background: #82c43c4b;
+        color: #6aaa25;
+        border-radius: 6px;
+        border: 2px solid #82c43c;
+        font-weight: bold;
+        box-shadow:0 4px 20px rgba(0,0,0,0.45);
       }
       
       button{
-      padding:12px 22px;
-      font-size:16px;
-      border:none;
-      border-radius:8px;
-      background:#0062ff;
-      color:white;
-      margin:10px;
+        padding:12px 22px;
+        font-size:16px;
+        border:none;
+        border-radius:8px;
+        background:#0062ff;
+        color:white;
+        margin:10px;
       }
       
       button:active{
-      transform:scale(0.95);
+        transform:scale(0.95);
       }
       
       ul{
-      text-align:left;
+        text-align:left;
+      }
+      
+      #taskPrompt {
+        font-size:22px;
+        margin:10px 0;
       }
       
       #result{
-      font-size:22px;
-      margin-top:10px;
+        font-size:22px;
+        margin-top:10px;
       }
-    
     </style>
     
     <script>
+      let selectedIndex = 2;
+      let lastMoveTime = 0;
+      let moveCooldown = 500;
       
-      let selectedIndex = 2  
-      let lastMoveTime = 0
-      let moveCooldown = 500
+      let moveThreshold = 20;
+      let selectThreshold = -25;
+      let unselectThreshold = 15;
       
-      let moveThreshold = 20
-      let selectThreshold = -25
-      let unselectThreshold = 15
-      
-      let neutral = true
-      let motionEnabled = false
+      let neutral = true;
+      let motionEnabled = false;
 
-      //Experiment Variaables
-      let tasks = []
-      let currentTask = 0
-      let startTime = 0
-      
-      let results = []
-      let experimentRunning = false
-      let selectionLocked = false
-      let falsePositives = 0      
-      
+      // Experiment variables
+      let tasks = [];
+      let currentTask = 0;
+      let startTime = 0;
+      let results = [];
+      let experimentRunning = false;
+      let selectionLocked = false;
+      let falsePositives = 0;
+      let attemptCounted = false; // new flag for single false positive per attempt
+
       function saveResultsCSV(data){
-        if(!data || data.length === 0) return
-      
-        let csv = "Task,Target,Time(ms),FalsePositives,Success\n"
-      
+        if(!data || data.length === 0) return;
+        let csv = "Task,Target,Time(ms),FalsePositives,Success\n";
         data.forEach(d => {
-          csv += `${d.task+1},${d.target+1},${d.time},${d.falsePositives},${d.success}\n`
-        })
-      
-        let blob = new Blob([csv], { type: "text/csv" })
-        let url = URL.createObjectURL(blob)
-        let a = document.createElement("a")
-        a.href = url
-        a.download = "experiment_results.csv"
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+          csv += `${d.task+1},${d.target+1},${d.time},${d.falsePositives},${d.success}\n`;
+        });
+        let blob = new Blob([csv], { type: "text/csv" });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "experiment_results.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
-      
-      
+
       function updateMenu(){
-      
-        let menu = document.getElementById("menu")
-        let items = document.getElementsByClassName("menuitem")
-        let viewport = document.getElementById("viewport")
-        
+        let menu = document.getElementById("menu");
+        let items = document.getElementsByClassName("menuitem");
+        let viewport = document.getElementById("viewport");
+
         for(let i=0;i<items.length;i++){
-          items[i].classList.remove("active")
+          items[i].classList.remove("active");
         }
-        
-        items[selectedIndex].classList.add("active")
-        
-        let item = items[selectedIndex]
-        
-        let itemCenter = item.offsetLeft + item.offsetWidth/2
-        let viewportCenter = viewport.offsetWidth/2
-        
-        let offset = itemCenter - viewportCenter
-        
-        menu.style.transform = "translateX(" + (-offset) + "px)"
-      
+
+        items[selectedIndex].classList.add("active");
+
+        let item = items[selectedIndex];
+        let itemCenter = item.offsetLeft + item.offsetWidth/2;
+        let viewportCenter = viewport.offsetWidth/2;
+        let offset = itemCenter - viewportCenter;
+
+        menu.style.transform = "translateX(" + (-offset) + "px)";
       }
-      
+
       function callbackOrientation(event){
-      
-        if(!motionEnabled) return
-        
-        let rawBeta = event.beta
-        let beta = rawBeta - 45   // CALIBRATION (45 = neutral)
-        let gamma = event.gamma
-        
-        document.getElementById("gyro_b_raw").textContent = Math.floor(rawBeta)
-        document.getElementById("gyro_b").textContent = Math.floor(beta)
-        document.getElementById("gyro_g").textContent = Math.floor(gamma)
-        
-        let now = Date.now()
-        let items = document.getElementsByClassName("menuitem")
-        
-        if(Math.abs(gamma) < 10) neutral = true
-        
+        if(!motionEnabled) return;
+
+        let rawBeta = event.beta;
+        let beta = rawBeta - 45;   // CALIBRATION (45 = neutral)
+        let gamma = event.gamma;
+
+        document.getElementById("gyro_b_raw").textContent = Math.floor(rawBeta);
+        document.getElementById("gyro_b").textContent = Math.floor(beta);
+        document.getElementById("gyro_g").textContent = Math.floor(gamma);
+
+        let now = Date.now();
+        let items = document.getElementsByClassName("menuitem");
+
+        if(Math.abs(gamma) < 10) neutral = true;
+
         if(neutral && now - lastMoveTime > moveCooldown){
-        
           if(gamma > moveThreshold){
-            selectedIndex++
-            neutral = false
-            lastMoveTime = now
+            selectedIndex++;
+            neutral = false;
+            lastMoveTime = now;
           }
-          
           if(gamma < -moveThreshold){
-            selectedIndex--
-            neutral = false
-            lastMoveTime = now
+            selectedIndex--;
+            neutral = false;
+            lastMoveTime = now;
           }
-          
-          if(selectedIndex < 0) selectedIndex = 0
-          if(selectedIndex >= items.length) selectedIndex = items.length - 1
-          
-          updateMenu()
-        
-        }
-        
-        if(beta < selectThreshold && !selectionLocked){
+          if(selectedIndex < 0) selectedIndex = 0;
+          if(selectedIndex >= items.length) selectedIndex = items.length - 1;
 
-          selectionLocked = true
- 
-          items[selectedIndex].classList.add("selected")
-        
-          document.getElementById("result").textContent =
-          "Selected: " + items[selectedIndex].textContent
-          if(experimentRunning){          
-            checkTask(selectedIndex)
-          }
+          updateMenu();
         }
-        
-        if(beta > unselectThreshold){
-          selectionLocked = false
-          
-          items[selectedIndex].classList.remove("selected")
-          
-          document.getElementById("result").textContent ="No selection"
-        }
-      
-      }
-      
-      function enableMotion(){
-        
-        if(typeof DeviceMotionEvent.requestPermission === "function"){
-        
-          DeviceMotionEvent.requestPermission()
-          .then(response => {
-          
-            if(response === "granted"){
-              
-              window.addEventListener("deviceorientation",callbackOrientation)
-              
-              motionEnabled = true
-              
-              document.getElementById("motionButton").textContent =
-              "Disable Motion"
-              
+
+        // Experiment selection logic
+        if(beta < selectThreshold && experimentRunning && !selectionLocked){
+          selectionLocked = true;
+
+          let target = tasks[currentTask];
+          if(selectedIndex === target){
+            items[selectedIndex].classList.add("selected");
+            document.getElementById("result").textContent =
+              "Selected: " + items[selectedIndex].textContent;
+            results.push({
+              task: currentTask,
+              target: target,
+              time: Date.now() - startTime,
+              falsePositives: falsePositives,
+              success: true
+            });
+            currentTask++;
+            falsePositives = 0;
+            attemptCounted = false;
+            startNextTask();
+          } else {
+            if(!attemptCounted){
+              falsePositives++;
+              attemptCounted = true;
             }
-            
-          })
-        
-        }else{
-          
-          window.addEventListener("deviceorientation",callbackOrientation)
-          
-          motionEnabled = true
-          
-          document.getElementById("motionButton").textContent =
-          "Disable Motion"
-          
+            document.getElementById("result").textContent =
+              `Selected: ${items[selectedIndex].textContent} (Incorrect, try again)`;
+          }
         }
-      
-      }
-      
-      function toggleMotion(){
-        
-        if(motionEnabled){
-          
-          motionEnabled = false
-          document.getElementById("motionButton").textContent = "Enable Motion"
-          
-        }else{
-        
-          enableMotion()
-        
+
+        if(beta > unselectThreshold){
+          selectionLocked = false;
+          attemptCounted = false;
+          items[selectedIndex].classList.remove("selected");
+          if(experimentRunning){
+            document.getElementById("result").textContent ="No selection";
+          }
         }
-        
-      }
-      
-      function startMenu(){
-      
-        document.getElementById("startScreen").style.display="none"
-        document.getElementById("menuScreen").style.display="flex"
-        
-        updateMenu()
-        
-      }
-      function startExperiment(){
-
-        tasks = []
-        results = []
-      
-        for(let i=0;i<10;i++){
-          tasks.push(Math.floor(Math.random()*6))
-        }
-      
-        currentTask = 0
-        experimentRunning = true
-      
-        document.getElementById("startScreen").style.display="none"
-        document.getElementById("menuScreen").style.display="flex"
-      
-        updateMenu()
-      
-        startNextTask()
-      
       }
 
-      
-      
-      function startNextTask(){
-      
-        if(currentTask >= tasks.length){
-      
-          document.getElementById("taskPrompt").textContent = "Experiment Complete"
-          document.getElementById("result").textContent = ""
-      
-          console.log("Experiment Results:")
-          console.log(results)
-      
-          experimentRunning = false
-
-          saveResultsCSV(results)
-      
-          return
-        }
-      
-        let target = tasks[currentTask]
-      
-        document.getElementById("taskPrompt").textContent = "Select: Button " + (target + 1)
-      
-        startTime = Date.now()
-    
-      }
-
-
-
-      function checkTask(selected){
-        if(!experimentRunning) return
-      
-        let target = tasks[currentTask]
-        let timeTaken = Date.now() - startTime
-        if(selected === target){
-          results.push({
-            task: currentTask,
-            target: target,
-            time: timeTaken,
-            falsePositives: falsePositives,
-            success: true
-          })
-          currentTask++
-          falsePositives = 0  
-          startNextTask()
+      function enableMotion(){
+        if(typeof DeviceMotionEvent.requestPermission === "function"){
+          DeviceMotionEvent.requestPermission().then(response => {
+            if(response === "granted"){
+              window.addEventListener("deviceorientation",callbackOrientation);
+              motionEnabled = true;
+              document.getElementById("motionButton").textContent = "Disable Motion";
+            }
+          });
         } else {
-          falsePositives++
-          document.getElementById("result").textContent = `Selected: ${document.getElementsByClassName("menuitem")[selected].textContent} (Incorrect, try again)`
-
-          selectionLocked = false
-      }}
-      
-      window.onload = function(){
-      
-        document.getElementById("menuScreen").style.display="none"
-        
+          window.addEventListener("deviceorientation",callbackOrientation);
+          motionEnabled = true;
+          document.getElementById("motionButton").textContent = "Disable Motion";
+        }
       }
-    
+
+      function toggleMotion(){
+        if(motionEnabled){
+          motionEnabled = false;
+          document.getElementById("motionButton").textContent = "Enable Motion";
+        } else {
+          enableMotion();
+        }
+      }
+
+      function startMenu(){
+        document.getElementById("startScreen").style.display="none";
+        document.getElementById("menuScreen").style.display="flex";
+        updateMenu();
+      }
+
+      function startExperiment(){
+        tasks = [];
+        results = [];
+        for(let i=0;i<10;i++){
+          tasks.push(Math.floor(Math.random()*6));
+        }
+        currentTask = 0;
+        experimentRunning = true;
+        document.getElementById("startScreen").style.display="none";
+        document.getElementById("menuScreen").style.display="flex";
+        updateMenu();
+        startNextTask();
+      }
+
+      function startNextTask(){
+        if(currentTask >= tasks.length){
+          document.getElementById("taskPrompt").textContent = "Experiment Complete";
+          document.getElementById("result").textContent = "";
+          experimentRunning = false;
+          saveResultsCSV(results);
+          return;
+        }
+        let target = tasks[currentTask];
+        document.getElementById("taskPrompt").textContent = "Select: Button " + (target + 1);
+        startTime = Date.now();
+      }
+
+      window.onload = function(){
+        document.getElementById("menuScreen").style.display="none";
+      }
+
     </script>
-    
   </head>
   
   <body>
-    
     <div id="startScreen">
-    
       <h1>Tilt Menu</h1>
-      
       <p>Instructions</p>
-      
       <ul>
-      <li>Tilt <b>Left / Right</b> to scroll buttons</li>
-      <li>Tilt <b>Up</b> to select</li>
-      <li>Tilt <b>Down</b> to unselect</li>
+        <li>Tilt <b>Left / Right</b> to scroll buttons</li>
+        <li>Tilt <b>Up</b> to select</li>
+        <li>Tilt <b>Down</b> to unselect</li>
       </ul>
-      
       <button onclick="startMenu()">Start</button>
       <button onclick="startExperiment()">Start Experiment</button>
     </div>
     
     <div id="menuScreen">
-    
       <p>Raw Beta: <span id="gyro_b_raw">0</span></p>
       <p>Calibrated Beta: <span id="gyro_b">0</span></p>
       <p>Gamma: <span id="gyro_g">0</span></p>
@@ -391,26 +315,20 @@
       <h2 id="taskPrompt">Task: </h2>
       
       <div id="viewport">
-        
         <div id="menu">
-          
           <div class="menuitem">Button 1</div>
           <div class="menuitem">Button 2</div>
           <div class="menuitem">Button 3</div>
           <div class="menuitem">Button 4</div>
           <div class="menuitem">Button 5</div>
           <div class="menuitem">Button 6</div>
-          
         </div>
-      
       </div>
       
       <h2 id="result">No selection</h2>
       
       <button id="motionButton" onclick="toggleMotion()">Enable Motion</button>
-      
     </div>
-  
   </body>
 </html>
 
