@@ -118,14 +118,15 @@
       let results = []
       let experimentRunning = false
       let selectionLocked = false
+      let falsePositives = 0      
       
       function saveResultsCSV(data){
         if(!data || data.length === 0) return
       
-        let csv = "Task,Target,Selected,Time(ms),Success\n"
+        let csv = "Task,Target,Time(ms),FalsePositives,Success\n"
       
         data.forEach(d => {
-          csv += `${d.task+1},${d.target+1},${d.selected+1},${d.time},${d.success}\n`
+          csv += `${d.task+1},${d.target+1},${d.time},${d.falsePositives},${d.success}\n`
         })
       
         let blob = new Blob([csv], { type: "text/csv" })
@@ -336,26 +337,23 @@
       
         let target = tasks[currentTask]
         let timeTaken = Date.now() - startTime
-      
-        // Log the attempt
-        let success = (selected === target)
-        results.push({
-          task: currentTask,
-          target: target,
-          selected: selected,
-          time: timeTaken,
-          success: success
-        })
-      
-        if(success){
+        if(selected === target){
+          results.push({
+            task: currentTask,
+            target: target,
+            time: timeTaken,
+            falsePositives: falsePositives,
+            success: true
+          })
           currentTask++
+          falsePositives = 0  
           startNextTask()
         } else {
-          document.getElementById("result").textContent =
-            `Selected: ${document.getElementsByClassName("menuitem")[selected].textContent} (Incorrect, try again)`
+          falsePositives++
+          document.getElementById("result").textContent = `Selected: ${document.getElementsByClassName("menuitem")[selected].textContent} (Incorrect, try again)`
+
           selectionLocked = false
-        }
-      }
+      }}
       
       window.onload = function(){
       
@@ -416,6 +414,7 @@
   
   </body>
 </html>
+
 
 
 
