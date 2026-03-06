@@ -109,6 +109,14 @@
       
       let neutral = true
       let motionEnabled = false
+
+      //Experiment Variaables
+      let tasks = []
+      let currentTask = 0
+      let startTime = 0
+      
+      let results = []
+      let experimentRunning = false
       
       function updateMenu(){
       
@@ -138,7 +146,7 @@
         if(!motionEnabled) return
         
         let rawBeta = event.beta
-        let beta = rawBeta - 45   // CALIBRATION (45° = neutral)
+        let beta = rawBeta - 45   // CALIBRATION (45 = neutral)
         let gamma = event.gamma
         
         document.getElementById("gyro_b_raw").textContent = Math.floor(rawBeta)
@@ -172,12 +180,13 @@
         }
         
         if(beta < selectThreshold){
-        
-          items[selectedIndex].classList.add("selected")
-          
-          document.getElementById("result").textContent =
-          "Selected: " + items[selectedIndex].textContent
-          
+ 
+        items[selectedIndex].classList.add("selected")
+      
+        document.getElementById("result").textContent =
+        "Selected: " + items[selectedIndex].textContent
+      
+        checkTask(selectedIndex)
         }
         
         if(beta > unselectThreshold){
@@ -247,6 +256,76 @@
         updateMenu()
         
       }
+      function startExperiment(){
+
+        tasks = []
+        results = []
+      
+        for(let i=0;i<10;i++){
+          tasks.push(Math.floor(Math.random()*6))
+        }
+      
+        currentTask = 0
+        experimentRunning = true
+      
+        document.getElementById("startScreen").style.display="none"
+        document.getElementById("menuScreen").style.display="flex"
+      
+        updateMenu()
+      
+        startNextTask()
+      
+      }
+
+      
+      
+      function startNextTask(){
+      
+        if(currentTask >= tasks.length){
+      
+          document.getElementById("result").textContent = "Experiment Complete"
+      
+          console.log("Experiment Results:")
+          console.log(results)
+      
+          experimentRunning = false
+      
+          return
+        }
+      
+        let target = tasks[currentTask]
+      
+        document.getElementById("result").textContent = "Select: Button " + (target + 1)
+      
+        startTime = Date.now()
+    
+      }
+
+
+
+    function checkTask(selected){
+      
+        if(!experimentRunning) return
+      
+        let target = tasks[currentTask]
+      
+        let timeTaken = Date.now() - startTime
+      
+        let success = (selected === target)
+      
+        results.push({
+          task: currentTask,
+          target: target,
+          selected: selected,
+          time: timeTaken,
+          success: success
+        })
+      
+        currentTask++
+      
+        setTimeout(startNextTask,1000)
+      
+      }
       
       window.onload = function(){
       
@@ -273,7 +352,7 @@
       </ul>
       
       <button onclick="startMenu()">Start</button>
-      
+      <button onclick="startExperiment()">Start Experiment</button>
     </div>
     
     <div id="menuScreen">
@@ -305,6 +384,7 @@
   
   </body>
 </html>
+
 
 
 
