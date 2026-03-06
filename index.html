@@ -68,6 +68,16 @@
         font-weight: bold;
         box-shadow:0 4px 20px rgba(0,0,0,0.45);
       }
+
+      .incorrect {
+        background: #ff4d4d52;
+        color: #ff4d4d;
+        border-radius: 6px;
+        border: 2px solid #ff4d4d;
+        font-weight: bold;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+        transform: scale(1.15);
+      }
       
       button{
         padding:12px 22px;
@@ -189,42 +199,58 @@
           updateMenu();
         }
 
-        // Experiment selection logic
-        if(beta < selectThreshold && experimentRunning && !selectionLocked){
+        if(beta < selectThreshold && !selectionLocked){
           selectionLocked = true;
-
+        
           let target = tasks[currentTask];
-          if(selectedIndex === target){
-            items[selectedIndex].classList.add("selected");
-            document.getElementById("result").textContent =
-              "Selected: " + items[selectedIndex].textContent;
-            results.push({
-              task: currentTask,
-              target: target,
-              time: Date.now() - startTime,
-              falsePositives: falsePositives,
-              success: true
-            });
-            currentTask++;
-            falsePositives = 0;
-            attemptCounted = false;
-            startNextTask();
-          } else {
-            if(!attemptCounted){
-              falsePositives++;
-              attemptCounted = true;
+          let items = document.getElementsByClassName("menuitem");
+        
+          if(experimentRunning){          
+            if(selectedIndex === target){
+              // Correct selection
+              items[selectedIndex].classList.add("selected");
+              items[selectedIndex].classList.remove("incorrect");
+        
+              document.getElementById("result").textContent =
+                "Selected: " + items[selectedIndex].textContent;
+        
+              results.push({
+                task: currentTask,
+                target: target,
+                time: Date.now() - startTime,
+                falsePositives: falsePositives,
+                success: true
+              });
+        
+              currentTask++;
+              falsePositives = 0;
+              startNextTask();
+            } else {
+              // Incorrect selection
+              if(!attemptCounted){
+                falsePositives++;
+                attemptCounted = true;
+              }
+        
+              items[selectedIndex].classList.add("incorrect");
+              items[selectedIndex].classList.remove("selected");
+        
+              document.getElementById("result").textContent =
+                `Selected: ${items[selectedIndex].textContent} (Incorrect, try again)`;
             }
-            document.getElementById("result").textContent =
-              `Selected: ${items[selectedIndex].textContent} (Incorrect, try again)`;
           }
         }
-
+        
         if(beta > unselectThreshold){
           selectionLocked = false;
           attemptCounted = false;
+        
+          let items = document.getElementsByClassName("menuitem");
           items[selectedIndex].classList.remove("selected");
+          items[selectedIndex].classList.remove("incorrect");
+        
           if(experimentRunning){
-            document.getElementById("result").textContent ="No selection";
+            document.getElementById("result").textContent = "No selection";
           }
         }
       }
@@ -331,6 +357,7 @@
     </div>
   </body>
 </html>
+
 
 
 
