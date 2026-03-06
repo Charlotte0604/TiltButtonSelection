@@ -210,8 +210,9 @@
         
           document.getElementById("result").textContent =
           "Selected: " + items[selectedIndex].textContent
-        
-          checkTask(selectedIndex)
+          if(experimentRunning){          
+            checkTask(selectedIndex)
+          }
         }
         
         if(beta > unselectThreshold){
@@ -219,9 +220,7 @@
           
           items[selectedIndex].classList.remove("selected")
           
-          document.getElementById("result").textContent =
-          "No selection"
-        
+          document.getElementById("result").textContent ="No selection"
         }
       
       }
@@ -414,6 +413,7 @@
   
   </body>
 </html>
+
 
 
 
